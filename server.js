@@ -9,7 +9,11 @@ const cors =require('cors')
 const bodyParser = require('body-parser');
 const allowedOrigins = [
   'https://elmokharaz.vercel.app',
-  'http://localhost:5173'
+  "https://wallet-1b.web.app",
+  'http://localhost:5173',
+  "https://wallet-test-frontend.vercel.app",
+  
+
 ];
 
 app.use(cors({
