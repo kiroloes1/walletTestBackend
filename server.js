@@ -16,8 +16,13 @@ const allowedOrigins = [
 
 ];
 
+// app.use(cors({
+//   origin: "*",
+//   credentials: true
+// }));
+
 app.use(cors({
-  origin: "*",
+  origin: true,
   credentials: true
 }));
 
