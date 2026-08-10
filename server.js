@@ -25,7 +25,12 @@ app.use(cors({
   origin: true,
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-API-Key",
+    "x-api-key"
+  ]
 }));
 
 const config=require(`${__dirname}/config/configDB`);
