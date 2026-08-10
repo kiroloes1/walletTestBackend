@@ -7,8 +7,13 @@ app.use(cookieParser());
 app.set('trust proxy', true);
 const cors =require('cors')
 const bodyParser = require('body-parser');
+const allowedOrigins = [
+  'https://elmokharaz.vercel.app',
+  'http://localhost:5173'
+];
+
 app.use(cors({
-  origin: true,
+  origin: allowedOrigins,
   credentials: true
 }));
 
