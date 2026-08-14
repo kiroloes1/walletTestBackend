@@ -20,7 +20,6 @@ const allowedOrigins = [
 //   origin: "*",
 //   credentials: true
 // }));
-
 app.use(cors({
   origin: true,
   credentials: true,
@@ -32,6 +31,7 @@ app.use(cors({
     "x-api-key"
   ]
 }));
+
 
 const config=require(`${__dirname}/config/configDB`);
 const userRoute=require(`${__dirname}/routes/userRoute`);
