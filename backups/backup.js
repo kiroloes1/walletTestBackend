@@ -299,7 +299,7 @@ cron.schedule(
    BACKUP ROUTE
 ========================= */
 
-router.get("/backup", async (req, res) => {
+router.get("/backup2", async (req, res) => {
   try {
     await createBackup();
 
