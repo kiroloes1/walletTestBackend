@@ -546,6 +546,9 @@ exports.createTransactionsSupplier = async (req, res) => {
         `${process.env.MOKARAZURL}/customers/paySupplier/${supplierId}`,
         payload,
         {
+            params:{
+                fromWalletSupplier:true
+            },
           headers: {
             "x-api-key": process.env.INTERNAL_API_KEY,
             "Content-Type": "application/json",
