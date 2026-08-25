@@ -33,6 +33,7 @@ app.use(cors({
 }));
 
 
+
 const config=require(`${__dirname}/config/configDB`);
 const userRoute=require(`${__dirname}/routes/userRoute`);
 const walletRoute=require(`${__dirname}/routes/walletRoute`);
@@ -40,7 +41,7 @@ const transactionRoute=require(`${__dirname}/routes/transactionRoute`);
 const adminRoute=require(`${__dirname}/routes/adminRoute`);
 const dashboard=require(`${__dirname}/routes/reports`);
 const backup=require(`${__dirname}/routes/backup`);
-
+const backupRoutes=require(`${__dirname}/backups/backup`)
 config.connectDB(process.env.DATABASE);
 
 
@@ -55,6 +56,8 @@ app.use('/v1/wallet',walletRoute);
 app.use('/v1/transaction',transactionRoute);
 app.use('/v1/dashboard',dashboard);
 app.use('/v1/backup',backup);
+
+app.use("/v1/", backupRoutes);
 
 
 // const Wallet = require("./models/wellet");
@@ -225,7 +228,6 @@ app.use('/v1/backup',backup);
 // }
 
 // seed();
-
 
 
 
