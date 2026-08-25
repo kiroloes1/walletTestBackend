@@ -1,57 +1,88 @@
-const mongoose=require('mongoose');
+const mongoose = require("mongoose");
 
-const transactionSchema=new mongoose.Schema({
-      walletId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Wallet",
-        required:true
+const transactionSchema = new mongoose.Schema(
+  {
+    walletId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Wallet",
+   
     },
-    senderName:{
-        type:String,
+
+    senderName: {
+      type: String
     },
-    receiverName:{
-        type:String,  
+
+    receiverName: {
+      type: String
     },
-        senderPhone:{
-        type:String,
+
+    senderPhone: {
+      type: String
     },
-        receiverPhone:{
-        type:String,
+
+    receiverPhone: {
+      type: String
     },
-    type :{
-        type:String,
-        required:true,
-        enum:["send", "receive"]
+
+    type: {
+      type: String,
+      required: true,
+      enum: ["send", "receive","out"]
     },
- 
-    notes:{
-        type:String,
+
+    notes: {
+      type: String
     },
-    amount:{
-        type:Number,
-        required:true,
-        min:1
+
+    amount: {
+      type: Number,
+      required: true,
+      min: 1
     },
-    isInternalTransfer:{
-        type:Boolean,
-        default:false
+
+    isInternalTransfer: {
+      type: Boolean,
+      default: false
     },
+
     fees: {
-    type: Number,
-    default: 0
-},
-ispay:{
-    type:Boolean,
-    default:true
-}
-},
-  {  timestamps:{
-        createdAt:false,
-        updatedAt:true
-    }}
+      type: Number,
+      default: 0
+    },
+
+    ispay: {
+      type: Boolean,
+      default: true
+    },
+    refrenceId:{
+      type:String,
+      default:""
+    },
+    supplierId:{ 
+      type:String,
+      default:""
+    },
+
+  },
+  {
+    timestamps: true
+  }
 );
 
 
 
-const transactionModel=mongoose.model("Transaction",transactionSchema);
-module.exports=transactionModel;
+transactionSchema.pre("save", function (next) {
+
+  if (!this.createdAt) {
+    this.createdAt = this.updatedAt || new Date();
+  }
+
+});
+
+
+const transactionModel = mongoose.model(
+  "Transaction",
+  transactionSchema
+);
+
+module.exports = transactionModel;

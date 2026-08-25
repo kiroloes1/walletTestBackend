@@ -53,6 +53,7 @@ const walletSchema=new mongoose.Schema({
     default: 0
 },
 
+
 monthlyIncoming: { type: Number, default: 0 },
 monthlyOutgoing: { type: Number, default: 0 },
 lastReset: { type: Date, default: Date.now }

@@ -13,6 +13,8 @@ router.use(authorizationMiddleware.role('superadmin', 'manager'));
 router.post("/",  transactionController.createTransactions);
 router.post("/V2",  transactionController.createTransactionsV2);
 
+router.post("/createTransactionsSupplier",  transactionController.createTransactionsSupplier);
+
 router.put("/:id",  transactionController.updateTransactions);
 
 router.get("/",  transactionController.getTransactions);
@@ -22,6 +24,9 @@ router.get("/getCurrentMonthTransactions",  transactionController.getCurrentMont
 
 
 router.get("/:id",  transactionController.getTransactionById);
+
+
+router.delete("/V3/:paymentId/:supplierId",transactionController.deletePaymentHistory)
 
 router.delete("/V2/:id",transactionController.deleteTransactionV2)
 

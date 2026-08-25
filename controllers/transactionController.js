@@ -498,6 +498,172 @@ exports.createTransactionsV2 = async (req, res) => {
 };
 
 
+// create  external transaction
+exports.createTransactionsSupplier = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const {
+      senderName,
+      receiverName,
+      notes,
+      amount,
+      createdAt,
+      supplierId
+    } = req.body;
+
+    if (!amount || !supplierId || !receiverName) {
+      throw new Error("يجب إدخال التاجر المراد الخصم منه، اسم المستلم، والمبلغ");
+    }
+
+    if (amount <= 0) {
+      throw new Error("المبلغ يجب أن يكون أكبر من صفر");
+    }
+
+    // 1. تسديد/خصم المبلغ من كشف حساب التاجر المورد
+    let payment;
+    try {
+      const payload = {
+        amount,
+        date: createdAt,
+        note: notes,
+          paymentMethod: "wallet",
+
+  walletInfo: {
+    senderName: senderName || "",
+    receiverName: receiverName || "",
+    senderPhone: req.body.senderPhone || "",
+    receiverPhone: req.body.receiverPhone || "",
+
+    // مهم: false علشان متعملش Wallet Transaction
+    // داخلي تاني داخل نظام المحافظ
+    linkWallet: false
+  }
+      };
+
+      const resPayment = await axios.patch(
+        `${process.env.MOKARAZURL}/customers/paySupplier/${supplierId}`,
+        payload,
+        {
+          headers: {
+            "x-api-key": process.env.INTERNAL_API_KEY,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      payment = resPayment.data;
+    } catch (error) {
+        
+      console.log(        error.response?.data?.message ||
+        error.message ||
+        "حدث خطأ في ربط التاجر"
+    
+      );
+      throw new Error(
+        error.response?.data?.message ||
+        error.message ||
+        "حدث خطأ في ربط التاجر"
+    
+      );
+
+    }
+
+
+    // 2. تسجيل المعاملة بدون walletId (تحويل خارجي)
+    const [transaction] = await transactionModel.create(
+      [
+        {
+          senderName,
+          receiverName,
+          type: "out",
+          notes,
+          amount,
+          refrenceId: payment.pay?._id || "",
+          createdAt: createdAt || new Date(),
+          supplierId
+        }
+      ],
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      message: "تمت العملية بنجاح وتسجيل التحويل الخارجي",
+      transaction
+    });
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
+    return res.status(400).json({
+      message: err.message
+    });
+  }
+};
+
+
+//  create transaction
+exports.deletePaymentHistory = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const { paymentId, supplierId } = req.params;
+
+    // 1. حذف العملية من سيستم المحافظ
+    const transaction = await transactionModel
+      .findOneAndDelete(
+        {
+          refrenceId: paymentId
+        },
+        { session }
+      );
+
+    if (!transaction) {
+      throw new Error("المعاملة غير موجودة");
+    }
+
+    // 2. حذف Payment من سيستم الموردين
+    try {
+      await axios.delete(
+        `${process.env.MOKARAZURL}/customers/deletePaymentHistory/${paymentId}/${supplierId}`,
+        {
+          headers: {
+            "x-api-key": process.env.INTERNAL_API_KEY,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+    } catch (error) {
+      throw new Error(
+        error.response?.data?.message ||
+        error.message ||
+        "حدث خطأ أثناء حذف عملية السداد من نظام الموردين"
+      );
+    }
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      message: "تم حذف العملية وإرجاع الرصيد بنجاح"
+    });
+
+  } catch (err) {
+    await session.abortTransaction();
+
+    return res.status(400).json({
+      message: err.message
+    });
+
+  } finally {
+    session.endSession();
+  }
+};
 
 
 // delte transaction
@@ -969,29 +1135,74 @@ exports.deleteTransaction = async (req, res) => {
 //         });
 //     }
 // };
-// get all transaction (With Filters & Pagination)
+
 exports.getTransactions = async (req, res) => {
     try {
-        // 1. استخراج متغيرات الصفحات والفلترة (قيمة افتراضية للصفحة 1 والحد 10)
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+        const { all } = req.query;
 
-        const { date, search } = req.query; 
+        const {
+            date,
+            fromDate,
+            toDate,
+            search,
+            filterType,
+            type // 🆕 نوع العملية: all | send | receive | out
+        } = req.query;
+
         let query = {};
 
-        // 🔹 فلترة بالتاريخ
-        if (date) {
+        // =========================
+        // فلترة التاريخ (بدون تغيير)
+        // =========================
+
+        if (filterType === "daily" && date) {
             const start = new Date(date);
             start.setHours(0, 0, 0, 0);
-            
+
             const end = new Date(date);
             end.setHours(23, 59, 59, 999);
 
             query.createdAt = { $gte: start, $lte: end };
         }
 
-        // 🔹 فلترة بالبحث
+        else if (filterType === "monthly" && date) {
+            const selectedDate = new Date(date);
+
+            const start = new Date(
+                selectedDate.getFullYear(), selectedDate.getMonth(), 1, 0, 0, 0, 0
+            );
+            const end = new Date(
+                selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59, 999
+            );
+
+            query.createdAt = { $gte: start, $lte: end };
+        }
+
+        else if (filterType === "custom" && fromDate && toDate) {
+            const start = new Date(fromDate);
+            start.setHours(0, 0, 0, 0);
+
+            const end = new Date(toDate);
+            end.setHours(23, 59, 59, 999);
+
+            query.createdAt = { $gte: start, $lte: end };
+        }
+
+        // =========================
+        // 🆕 فلترة نوع العملية
+        // =========================
+        // type = all | send | receive | out
+        if (type && type !== "all") {
+            query.type = type;
+        }
+
+        // =========================
+        // البحث (بدون تغيير)
+        // =========================
+
         if (search) {
             query.$or = [
                 { senderName: { $regex: search, $options: "i" } },
@@ -1001,10 +1212,20 @@ exports.getTransactions = async (req, res) => {
             ];
         }
 
-        // 2. حساب إجمالي عدد المعاملات المتوافقة مع الفلتر (مهم للـ Frontend)
         const totalTransactions = await transactionModel.countDocuments(query);
 
-        // 3. جلب البيانات المحددة بالصفحة الحالية
+        if (all) {
+            const transactions = await transactionModel
+                .find(query)
+                .sort({ createdAt: -1 })
+                .populate("walletId");
+
+            return res.status(200).json({
+                message: "تم جلب العمليات بنجاح",
+                transactions
+            });
+        }
+
         const transactions = await transactionModel
             .find(query)
             .sort({ createdAt: -1 })
