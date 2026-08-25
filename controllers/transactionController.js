@@ -573,7 +573,7 @@ exports.createTransactionsSupplier = async (req, res) => {
     }
 
 
-      console.log(payment.pay?._id)
+      console.log(payment)
 
     // 2. تسجيل المعاملة بدون walletId (تحويل خارجي)
     const [transaction] = await transactionModel.create(
