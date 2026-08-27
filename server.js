@@ -42,7 +42,7 @@ const adminRoute=require(`${__dirname}/routes/adminRoute`);
 const dashboard=require(`${__dirname}/routes/reports`);
 const backup=require(`${__dirname}/routes/backup`);
 const backupRoutes=require(`${__dirname}/backups/backup`)
-config.connectDB(process.env.DATABASE);
+// config.connectDB(process.env.DATABASE);
 
 
 app.use(bodyParser.json());
@@ -230,9 +230,26 @@ app.use("/v1/", backupRoutes);
 // seed();
 
 
+const PORT = process.env.PORT || 4000;
+
+async function startServer() {
+    try {
+        await config.connectDB(process.env.DATABASE);
+
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+
+    } catch (error) {
+        console.error("Failed to start server:", error);
+        process.exit(1);
+    }
+}
+
+startServer();
 
 
-const PORT=process.env.PORT || 4000;
-app.listen(PORT,()=>{
-    console.log(`Server is running on port ${PORT}`);
-})
+// const PORT=process.env.PORT || 4000;
+// app.listen(PORT,()=>{
+//     console.log(`Server is running on port ${PORT}`);
+// })
