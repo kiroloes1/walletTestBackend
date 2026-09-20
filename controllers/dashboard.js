@@ -49,17 +49,35 @@ const nearLimitWallets = await Wallet.countDocuments({
 });
 
     // إجمالي الفلوس في كل المحافظ
-    const totalBalanceResult = await Wallet.aggregate([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: "$balance" }
+    // const totalBalanceResult = await Wallet.aggregate([
+    //   {
+    //     $group: {
+    //       _id: null,
+    //       total: { $sum: "$balance" }
+    //     }
+    //   }
+    // ]);
+
+    // const totalBalance = totalBalanceResult[0]?.total || 0;
+
+    // إجمالي الفلوس في كل المحافظ بعد خصم الرسوم
+const totalBalanceResult = await Wallet.aggregate([
+  {
+    $group: {
+      _id: null,
+      total: {
+        $sum: {
+          $subtract: [
+            "$balance",
+            { $ifNull: ["$fees", 0] }
+          ]
         }
       }
-    ]);
+    }
+  }
+]);
 
-    const totalBalance = totalBalanceResult[0]?.total || 0;
-
+const totalBalance = totalBalanceResult[0]?.total || 0;
   
     // Incoming / Outgoing
   
