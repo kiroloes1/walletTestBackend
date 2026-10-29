@@ -1283,6 +1283,52 @@ exports.getTransactions = async (req, res) => {
     }
 };
 
+exports.getTransactionByWallet2 = async (req, res) => {
+  try {
+    const { phoneNumber } = req.params;
+    const { from, to } = req.query;
+ 
+    const filter = {
+      $or: [{ senderPhone: phoneNumber }, { receiverPhone: phoneNumber }],
+    };
+ 
+    if (from || to) {
+      filter.createdAt = {};
+ 
+      if (from) {
+        const fromDate = new Date(from);
+        if (isNaN(fromDate.getTime())) {
+          return res.status(400).json({ message: "تاريخ البداية غير صالح" });
+        }
+        filter.createdAt.$gte = fromDate;
+      }
+ 
+      if (to) {
+        const toDate = new Date(to);
+        if (isNaN(toDate.getTime())) {
+          return res.status(400).json({ message: "تاريخ النهاية غير صالح" });
+        }
+        filter.createdAt.$lte = toDate;
+      }
+    }
+ 
+    const transaction = await transactionModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+ 
+    return res.status(200).json({
+      message: "تم جلب العمليات بنجاح",
+      count: transaction.length,
+      transaction,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "حدث خطأ أثناء جلب العمليات" });
+  }
+};
+
+
 // get all transaction to wallet 
  exports.getTransactionByWallet = async (req, res) => {
     try {
